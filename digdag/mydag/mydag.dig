@@ -1,0 +1,49 @@
+timezone: Asia/Tokyo
+
+schedule:
+  hourly>: 05:00
+
+_export:
+  py:
+    python: C:/Users/YOUR_NAME/anaconda3/python
+  pg:
+    host: 127.0.0.1
+    port: 5432
+    database: postgres
+    user: postgres
+    ssl: false
+    schema: public
+
++setup:
+  echo>: start ${session_time}
+
++disp_current_date:
+  echo>: ${moment(session_time).utc().format('YYYY-MM-DD HH:mm:ss Z')}
+
++run_py_func:
+  py>: query.tasks.setup
+  str_session_time: ${session_time}
+
++run_py_method:
+  py>: query.tasks.MyWorkflow.my_task
+
++select_members_output_csv:
+  pg>: query/select_members.sql
+  download_file: output.csv
+
++select_members_store:
+  pg>: query/select_members.sql
+  store_last_results: all
+
++task3:
+  py>: query.tasks.func1
+  str_session_time: ${session_time}
+  table: ${pg.last_results}
+
+# +select_insert:
+#   pg>: select_members2.sql
+#   insert_into: result
+
++teardown:
+  echo>: finish ${session_time}
+

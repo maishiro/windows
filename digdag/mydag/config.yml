@@ -1,0 +1,4 @@
+data:
+  aws:
+    hostname: hostname.co.jp
+    username: username
