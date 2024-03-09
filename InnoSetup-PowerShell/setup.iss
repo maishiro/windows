@@ -25,8 +25,10 @@ Compression=lzma
 SolidCompression=yes
 ; インストールしても、アプリケーションの追加と削除に表示しない
 Uninstallable=false
-;アプリケーションのCPUアーキテクチャ指定(環境変数が変わることがある ex. ProgramFiles)
+; アプリケーションのCPUアーキテクチャ指定(環境変数が変わることがある ex. ProgramFiles)
 ArchitecturesInstallIn64BitMode=x64
+; インストール準備中に必要なファイルを使っているアプリがあると、セットアップがそのアプリを閉じて後で再開するか確認します
+; CloseApplications=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -41,31 +43,72 @@ Source: "callENV.bat"; DestDir: "{tmp}"; Flags: deleteafterinstall
 ; Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -File ""{tmp}\callENV.ps1"""; WorkingDir: "{tmp}"; Flags: waituntilterminated runhidden
 
 [Code]
+// Called after a new wizard page (specified by CurPageID) is shown.
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  case CurPageID of
+    wpWelcome: Log( 'CurPageChanged  CurPageID: wpWelcome' );
+    wpLicense: Log( 'CurPageChanged  CurPageID: wpLicense' );
+    wpPassword: Log( 'CurPageChanged  CurPageID: wpPassword' );
+    wpInfoBefore: Log( 'CurPageChanged  CurPageID: wpInfoBefore' );
+    wpUserInfo: Log( 'CurPageChanged  CurPageID: wpUserInfo' );
+    wpSelectDir: Log( 'CurPageChanged  CurPageID: wpSelectDir' );
+    wpSelectComponents: Log( 'CurPageChanged  CurPageID: wpSelectComponents' );
+    wpSelectProgramGroup: Log( 'CurPageChanged  CurPageID: wpSelectProgramGroup' );
+    wpSelectTasks: Log( 'CurPageChanged  CurPageID: wpSelectTasks' );
+    wpReady: Log( 'CurPageChanged  CurPageID: wpReady' );
+    wpPreparing:
+    begin
+      Log( 'CurPageChanged  CurPageID: wpPreparing' );
+    end;
+    wpInstalling: Log( 'CurPageChanged  CurPageID: wpInstalling' );
+    wpInfoAfter: Log( 'CurPageChanged  CurPageID: wpInfoAfter' );
+    wpFinished: Log( 'CurPageChanged  CurPageID: wpFinished' );
+  else
+    Log( 'CurPageChanged  CurPageID: else' );
+  end;
+end;
+
+// You can use this event function to detect and install missing prerequisites and/or to shutdown any application which is about to be updated.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Log( 'PrepareToInstall  NeedsRestart: '+IntToStr(NeedsRestart) );
+
+end;
+
+// You can use this event function to perform your own pre-install and post-install tasks.
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Code: Integer;
 begin
   if CurStep = ssInstall then
   begin
-    Log( 'ssInstall' );
-    Log( '{tmp}: '+ExpandConstant('{tmp}') );
-    ExtractTemporaryFiles('{tmp}\callENV.ps1');
+    Log( 'CurStepChanged  ssInstall' );
+    Log( 'CurStepChanged  {tmp}: '+ExpandConstant('{tmp}') );
+    // ExtractTemporaryFiles('{tmp}\callENV.ps1');
     // Exec( 'powershell.exe', ' -ExecutionPolicy Bypass -File '+ExpandConstant('{tmp}\callENV.ps1'), '', SW_HIDE, ewWaitUntilTerminated, Code )
     // for DEBUG
-    ExtractTemporaryFiles('{tmp}\callENV.bat');
+    // ExtractTemporaryFiles('{tmp}\callENV.bat');
     Exec( 'cmd.exe', ' /C '+ExpandConstant('{tmp}\callENV.bat'), '', SW_SHOW, ewWaitUntilTerminated, Code )
     // for DEBUG
-    Log( '{Code}: '+IntToStr(Code) );
+    Log( 'CurStepChanged  Exec - ResultCode: '+IntToStr(Code) );
 
   end
   else if ( CurStep = ssPostInstall ) then
   begin
-    Log( 'ssPostInstall' );
+    Log( 'CurStepChanged  ssPostInstall' );
 
   end
   else
   begin
-    Log( 'ssDone' );
+    Log( 'CurStepChanged  ssDone' );
 
   end;
 end;
+
+// You can use this event function to monitor progress while Setup is extracting files, creating shortcuts, creating INI entries, and creating registry entries.
+procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
+begin
+  Log( 'CurInstallProgressChanged  CurProgress: '+IntToStr(CurProgress)+' MaxProgress: '+IntToStr(MaxProgress) );
+end;
+
